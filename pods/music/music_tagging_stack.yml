@@ -1,0 +1,210 @@
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "music-tagger"
+spec:
+  containers:
+    - name: "beets"
+      image: "lscr.io/linuxserver/beets:latest"
+      env:
+        - name: "PUID"
+          value: "1000"
+        - name: "PGID"
+          value: "1000"
+        - name: "TZ"
+          value: "ETC/UTC" # Your timezone goes here
+      ports:
+        - containerPort: 8337
+          hostPort: 8337
+      volumeMounts:
+        - name: "beets-config"
+          mountPath: "/config:Z"
+        - name: "music"
+          mountPath: "/music:z"
+        - name: "downloads"
+          mountPath: "/downloads:z"
+
+    - name: "lidarr"
+      image: "lscr.io/linuxserver/lidarr:latest"
+      env:
+        - name: "PUID"
+          value: "1000"
+        - name: "PGID"
+          value: "1000"
+        - name: "TZ"
+          value: "ETC/UTC" # Your timezone goes here
+      ports:
+        - containerPort: 8686
+          hostPort: 8686
+      volumeMounts:
+        - name: "lidarr-config"
+          mountPath: "/config:Z"
+        - name: "music"
+          mountPath: "/music:z"
+        - name: "downloads"
+          mountPath: "/downloads:z"
+        - name: "lidarr-90-config"
+          mountPath: "/etc/cont-init.d/90-config:Z"
+        - name: "beet-import"
+          mountPath: "/config/beet_import.sh:Z"
+
+    - name: "nzbhydra2"
+      image: "lscr.io/linuxserver/nzbhydra2:latest"
+      env:
+        - name: "PUID"
+          value: "1000"
+        - name: "PGID"
+          value: "1000"
+        - name: "TZ"
+          value: "ETC/UTC" # Your timezone goes here
+      ports:
+        - containerPort: 5076
+          hostPort: 5076
+      volumeMounts:
+        - name: "nzbhydra2-config"
+          mountPath: "/config:Z"
+        - name: "downloads"
+          mountPath: "/downloads:z"
+
+    - name: "jackett"
+      image: "lscr.io/linuxserver/jackett:latest"
+      env:
+        - name: "PUID"
+          value: "1000"
+        - name: "PGID"
+          value: "1000"
+        - name: "TZ"
+          value: "ETC/UTC" # Your timezone goes here
+        - name: "AUTO_UPDATE"
+          value: "true"
+      ports:
+        - containerPort: 9117
+          hostPort: 9117
+      volumeMounts:
+        - name: "jackett-config"
+          mountPath: "/config:Z"
+        - name: "downloads"
+          mountPath: "/downloads:z"
+
+  volumes:
+    - name: "music"
+      persistentVolumeClaim:
+        claimName: "music-claim"
+    - name: "downloads"
+      persistentVolumeClaim:
+        claimName: "downloads-claim"
+    - name: "beets-config"
+      persistentVolumeClaim:
+        claimName: "beets-config-claim"
+    - name: "beet-import"
+      persistentVolumeClaim:
+        claimName: "beet-import-claim"
+    - name: "lidarr-config"
+      persistentVolumeClaim:
+        claimName: "lidarr-config-claim"
+    - name: "lidarr-90-config"
+      persistentVolumeClaim:
+        claimName: "lidarr-90-config-claim"
+    - name: "nzbhydra2-config"
+      persistentVolumeClaim:
+        claimName: "nzbhydra2-config-claim"
+    - name: "jackett-config"
+      persistentVolumeClaim:
+        claimName: "jackett-config-claim"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "music-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "100Gi"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "downloads-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "100Gi"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "beets-config-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "1Gi"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "beet-import-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "1Gi"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "lidarr-config-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "1Gi"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "lidarr-90-config-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "1Gi"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "nzbhydra2-config-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "1Gi"
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "jackett-config-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "1Gi"
