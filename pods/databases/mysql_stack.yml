@@ -1,0 +1,123 @@
+---
+# database stack
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "dbstack"
+spec:
+  containers:
+    - name: "mysql"
+      image: "docker.io/mysql:latest"
+      ports:
+        - containerPort: 3306
+      volumeMounts:
+        - name: "mysql-data"
+          mountPath: "/var/lib/mysql:Z"
+      env:
+        - name: "MYSQL_ROOT_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: "dbstack-secrets"
+              key: "MYSQL_ROOT_PASSWORD"
+        - name: "MYSQL_USER"
+          valueFrom:
+            secretKeyRef:
+              name: "dbstack-secrets"
+              key: "MYSQL_USER"
+        - name: "MYSQL_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: "dbstack-secrets"
+              key: "MYSQL_PASSWORD"
+        - name: "TZ"
+          value: "ETC/UTC" # Your timezone goes here
+      hostname: "mysql-host"
+
+    - name: "mysql-workbench"
+      image: "lscr.io/linuxserver/mysql-workbench:latest"
+      env:
+        - name: "PUID"
+          value: "1000"
+        - name: "PGID"
+          value: "1000"
+        - name: "TZ"
+          value: "ETC/UTC" # Your timezone goes here
+      ports:
+        - containerPort: 3000
+          hostPort: 3000
+      volumeMounts:
+        - name: "mysql-workbench-data"
+          mountPath: "/config:Z"
+      capAdd:
+        - IPC_LOCK
+      restartPolicy: unless-stopped
+
+    - name: "phpmyadmin"
+      image: "docker.io/phpmyadmin:latest"
+      ports:
+        - containerPort: 80
+          hostPort: 1080
+      env:
+        - name: "MYSQL_ROOT_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: "dbstack-secrets"
+              key: "MYSQL_ROOT_PASSWORD"
+        - name: "MYSQL_USER"
+          valueFrom:
+            secretKeyRef:
+              name: "dbstack-secrets"
+              key: "MYSQL_USER"
+        - name: "MYSQL_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: "dbstack-secrets"
+              key: "MYSQL_PASSWORD"
+        - name: "PMA_ARBITRARY"
+          value: "1"
+
+  volumes:
+    - name: "mysql-data"
+      persistentVolumeClaim:
+        claimName: "mysql-data-claim"
+    - name: "mysql-workbench-data"
+      persistentVolumeClaim:
+        claimName: "mysql-workbench-data-claim"
+
+---
+# Persistent Volume Claim for mysql-data volume
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "mysql-data-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "5Gi"
+
+---
+# Persistent Volume Claim for mysql-workbench-data volume
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "mysql-workbench-data-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "1Gi"
+
+---
+# Secrets for MySQL passwords
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "dbstack-secrets"
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD}"
+  MYSQL_USER: "${MYSQL_USER}"
+  MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
