@@ -1,0 +1,116 @@
+---
+# rootless database stack
+apiVersion: v1
+kind: Pod
+metadata:
+  name: "dbstack"
+spec:
+  restartPolicy: Always
+  securityContext:
+    fsGroup: 1000
+
+  containers:
+    - name: "mysql"
+      image: "docker.io/mysql:latest"
+      securityContext:
+        runAsUser: 1001
+        runAsGroup: 1001
+      ports:
+        - containerPort: 3306
+      volumeMounts:
+        - name: "mysql-data"
+          mountPath: "/var/lib/mysql:z"
+      env:
+        - name: "MYSQL_ROOT_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: "dbstack-secrets"
+              key: "MYSQL_ROOT_PASSWORD"
+        - name: "MYSQL_USER"
+          valueFrom:
+            secretKeyRef:
+              name: "dbstack-secrets"
+              key: "MYSQL_USER"
+        - name: "MYSQL_PASSWORD"
+          valueFrom:
+            secretKeyRef:
+              name: "dbstack-secrets"
+              key: "MYSQL_PASSWORD"
+        - name: "TZ"
+          value: "Europe/Oslo" # change this to desired TZ
+      hostname: "mysql-host"
+
+    - name: "mysql-workbench"
+      image: "lscr.io/linuxserver/mysql-workbench:latest"
+      securityContext:
+        capabilities:
+          add: ["IPC_LOCK"]
+      env:
+        - name: "PUID"
+          value: "1000"
+        - name: "PGID"
+          value: "1000"
+        - name: "TZ"
+          value: "Europe/Oslo" # change this to desired TZ
+      ports:
+        - containerPort: 3000
+          hostPort: 3000
+      volumeMounts:
+        - name: "mysql-workbench-data"
+          mountPath: "/config:z"
+
+    - name: "adminer"
+      image: "docker.io/adminer:latest"
+      ports:
+        - containerPort: 8080
+          hostPort: 8080
+      env:
+        - name: "ADMINER_DEFAULT_SERVER"
+          value: "mysql"
+
+  volumes:
+    - name: "mysql-data"
+      persistentVolumeClaim:
+        claimName: "mysql-data-claim"
+    - name: "mysql-workbench-data"
+      persistentVolumeClaim:
+        claimName: "mysql-workbench-data-claim"
+
+---
+# Persistent Volume Claim for mysql-data volume
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "mysql-data-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "5Gi"
+
+---
+# Persistent Volume Claim for mysql-workbench-data volume
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "mysql-workbench-data-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "1Gi"
+
+---
+# Secrets for MySQL passwords
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "dbstack-secrets"
+  creationTimestamp: null
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: "StrongPass123" # change this
+  MYSQL_USER: "dbuser" # change this
+  MYSQL_PASSWORD: "dbuserpass" # change this
