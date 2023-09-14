@@ -1,4 +1,39 @@
 ---
+# Persistent Volume Claim for mysql-data volume
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "mysql-data-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "5Gi"
+---
+# Persistent Volume Claim for mysql-workbench-data volume
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: "mysql-workbench-data-claim"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "1Gi"
+---
+# Secrets for MySQL passwords
+apiVersion: v1
+kind: Secret
+metadata:
+  name: "dbstack-secrets"
+type: Opaque
+stringData:
+  MYSQL_ROOT_PASSWORD: "StrongPass123" # change this
+  MYSQL_USER: "dbuser" # change this
+  MYSQL_PASSWORD: "dbuserpass" # change this
+---
 # rootless database stack
 apiVersion: v1
 kind: Pod
@@ -8,10 +43,16 @@ spec:
   restartPolicy: Always
   securityContext:
     fsGroup: 1000
-
   containers:
     - name: "mysql"
       image: "docker.io/mysql:latest"
+      resources:
+      requests:
+        cpu: 100m
+        memory: 64Mi
+      limit:
+        cpu: 1000m
+        memory: 512Mi
       securityContext:
         runAsUser: 1001
         runAsGroup: 1001
@@ -67,7 +108,6 @@ spec:
       env:
         - name: "ADMINER_DEFAULT_SERVER"
           value: "mysql"
-
   volumes:
     - name: "mysql-data"
       persistentVolumeClaim:
@@ -75,42 +115,3 @@ spec:
     - name: "mysql-workbench-data"
       persistentVolumeClaim:
         claimName: "mysql-workbench-data-claim"
-
----
-# Persistent Volume Claim for mysql-data volume
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: "mysql-data-claim"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: "5Gi"
-
----
-# Persistent Volume Claim for mysql-workbench-data volume
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: "mysql-workbench-data-claim"
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: "1Gi"
-
----
-# Secrets for MySQL passwords
-apiVersion: v1
-kind: Secret
-metadata:
-  name: "dbstack-secrets"
-  creationTimestamp: null
-type: Opaque
-stringData:
-  MYSQL_ROOT_PASSWORD: "StrongPass123" # change this
-  MYSQL_USER: "dbuser" # change this
-  MYSQL_PASSWORD: "dbuserpass" # change this
