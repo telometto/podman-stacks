@@ -136,8 +136,8 @@ mkdir -p $HOME/.config/systemd/user
 
 # copy the service files over
 # NB! if you're using SELinux, you need to also pass the '-Z' flag!
-sudo cp -v container-wireguard.service /etc/systemd/system/
-cp -rv container-*.service $HOME/.config/systemd/user/
+sudo mv -v container-wireguard.service /etc/systemd/system/
+mv -v container-*.service $HOME/.config/systemd/user/
 
 # restart the systemd daemon
 sudo systemctl daemon-reload
