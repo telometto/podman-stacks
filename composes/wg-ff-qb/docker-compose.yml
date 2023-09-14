@@ -1,0 +1,72 @@
+---
+version: "3"
+services:
+  wireguard:
+    image: "linuxserver/wireguard:latest"
+    container_name: "wireguard"
+    cap_add:
+      - "NET_ADMIN"
+      #- "SYS_MODULE" # unneeded if wireguard kernel module is loaded ('modprobe wireguard' to enable it)
+    sysctls:
+      #- "sysctl -w net.ipv4.ip_forward=1"
+      - "net.ipv4.conf.all.src_valid_mark=1" # needed if using wg as client
+    ports:
+      #- "58026:58026/udp" # original
+      - "8080:8080" # qbittorrent ports
+      - "6881:6881" # qbittorrent ports
+      - "6881:6881/udp" # qbittorrent ports
+      - "3000:3000" # firefox ports
+      - "3001:3001" # firefox ports
+    volumes:
+      - "./wireguard/config:/config:z"
+      - "/lib/modules:/lib/modules:z"
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "${TZ}"
+      ALLOWEDIPS: "0.0.0.0/0"
+      LOG_CONFS: true
+    privileged: true
+
+  firefox:
+    image: "linuxserver/firefox:latest"
+    container_name: "firefox"
+    network_mode: "service:wireguard" # needed to route traffic through vpn
+    # ORIGINAL BELOW
+    # Ports are discarded when using 'network_mode'
+    #ports:
+    #  - "3000:3000"
+    #  - "3001:3001"
+    volumes:
+      - "./firefox/config:/config:z"
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "${TZ}"
+      DRINODE: "/dev/dri/renderD128" # gpu hw acceleration
+    #privileged: true
+    shm_size: "1gb"
+    devices: # needed for gpu hw accel
+      - "/dev/dri:/dev/dri"
+    #security_opt: # needed if you use docker engine (for syscalls)
+    #  - seccomp:unconfined
+
+  qbittorrent:
+    image: "linuxserver/qbittorrent:latest"
+    container_name: "qbittorrent"
+    network_mode: "service:wireguard" # needed to route traffic through vpn
+    # ORIGINAL BELOW
+    # Ports are discarded when using 'network_mode'
+    #ports:
+    #  - "8080:8080"
+    #  - "6881:6881"
+    #  - "6881:6881/udp"
+    volumes:
+      - "./qbittorrent/config:/config:z"
+      - "${QBIT_DATA_PATH}:/downloads:z"
+    environment:
+      PUID: "1000"
+      PGID: "1000"
+      TZ: "${TZ}"
+      WEBUI_PORT: "8080"
+    #privileged: true
