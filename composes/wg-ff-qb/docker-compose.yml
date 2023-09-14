@@ -4,6 +4,7 @@ services:
   wireguard:
     image: "linuxserver/wireguard:latest"
     container_name: "wireguard"
+    #restart: unless-stopped
     cap_add:
       - "NET_ADMIN"
       #- "SYS_MODULE" # unneeded if wireguard kernel module is loaded ('modprobe wireguard' to enable it)
@@ -31,6 +32,7 @@ services:
   firefox:
     image: "linuxserver/firefox:latest"
     container_name: "firefox"
+    #restart: unless-stopped
     network_mode: "service:wireguard" # needed to route traffic through vpn
     # ORIGINAL BELOW
     # Ports are discarded when using 'network_mode'
@@ -54,6 +56,7 @@ services:
   qbittorrent:
     image: "linuxserver/qbittorrent:latest"
     container_name: "qbittorrent"
+    #restart: unless-stopped
     network_mode: "service:wireguard" # needed to route traffic through vpn
     # ORIGINAL BELOW
     # Ports are discarded when using 'network_mode'
